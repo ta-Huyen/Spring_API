@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="ISO-8859-1">
+    <title>Spring Assignment</title>
+    <style>
+        form {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" />
+    <script src="https://cdn.jsdelivr.net/webjars/org.webjars/jquery/2.1.0/jquery.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+<h1 class="text-center">Welcome</h1>
+<p class="text-center mb-3">This is a Rest API built using Spring boot, Redis, MySQL, MongoDB and RabbitMQ</p>
+<form th:action="@{/home/course}" method="post" class="mx-auto">
+    <button  type="submit" class="btn btn-primary btn-block mb-3">Courses list</button>
+</form>
+<form th:action="@{/edit-profile}" method="post" class="mx-auto">
+    <button  type="submit" class="btn btn-primary btn-block mb-3">Edit your profile</button>
+</form>
+<form th:action="@{/detele-account}" method="post" class="mx-auto">
+    <button  type="submit" class="btn btn-primary btn-block mb-3">Delete your account</button>
+</form>
+<form th:action="@{/logout}" method="post" class="mx-auto">
+    <button type="submit" class="btn btn-primary btn-block mb-3">Log out</button>
+</form>
+</div>
+</body>
+</html>
