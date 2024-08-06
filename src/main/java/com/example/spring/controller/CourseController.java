@@ -1,13 +1,18 @@
 package com.example.spring.controller;
 
+import com.example.spring.configuration.Constant;
 import com.example.spring.document.Course;
 import com.example.spring.service.CourseService;
+
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.util.List;
@@ -18,6 +23,26 @@ import java.util.Optional;
 public class CourseController {
     @Autowired
     private CourseService courseService;
+
+    @GetMapping
+    public ModelAndView viewCourse(Model model) {
+        return findPaginated(1, model);
+    }
+
+    @GetMapping("/page/{pageNo}")
+    public ModelAndView findPaginated(@PathVariable(value="pageNo") int pageNo, Model model) {
+        int size = Constant.DEFAULT_PAGE_SIZE;
+
+        Page<Course> page = courseService.findPaginated(pageNo, size);
+        List<Course> listCourses = page.getContent();
+
+        model.addAttribute("currentPage", pageNo);
+        model.addAttribute("totalPages", page.getTotalPages());
+        model.addAttribute("totalItems", page.getTotalElements());
+        model.addAttribute("listCourses", listCourses);
+
+        return new ModelAndView("/course-list");
+    }
 
     @GetMapping(value = "/{id}", produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Course> getCourseById(@PathVariable("id") long id) {
@@ -37,11 +62,6 @@ public class CourseController {
         HttpHeaders headers = new HttpHeaders();
         headers.setLocation(ucBuilder.path("/course/{id}").buildAndExpand(course.getId()).toUri());
         return new ResponseEntity<Void> (headers, HttpStatus.CREATED);
-    }
-
-    @GetMapping(value = "/get", headers = "Accept=application/json")
-    public List<Course> getAllCourse() {
-        return courseService.getCourse();
     }
 
     @DeleteMapping(value = "/{id}", headers = "Accept=application/json")

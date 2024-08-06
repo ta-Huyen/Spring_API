@@ -1,66 +1,81 @@
 package com.example.spring.controller;
 
+import com.example.spring.configuration.Constant;
 import com.example.spring.entity.User;
 import com.example.spring.service.UserService;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import static java.util.stream.Collectors.toList;
-import static org.springframework.http.ResponseEntity.ok;
 
 @Slf4j
 @AllArgsConstructor
 @RestController
-@RequestMapping("/api/userRepo")
+@RequestMapping("/api/user")
 public class UserController {
-    protected static final String DEFAULT_PAGE_SIZE = "100";
-    protected static final String DEFAULT_PAGE_NUM = "0";
-
-    private final UserService userService;
-
-    @PostMapping("/create")
-    @ResponseStatus(HttpStatus.CREATED)
-    public void createUser(@RequestBody User user,
-                           HttpServletRequest request, HttpServletResponse response) {
-        final User createUser = userService.saveUser(user);
-        response.setHeader("Location", request.getRequestURL().append("/").append(createUser.getId()).toString());
-    }
+    @Autowired
+    AuthenticationManager authenticationManager;
+    @Autowired
+    private PasswordEncoder encoder;
+    @Autowired
+    private UserService userService;
 
     @GetMapping("/me")
-    public ResponseEntity currentUser(@AuthenticationPrincipal UserDetails userDetails){
+    public ResponseEntity<?> currentUser(@AuthenticationPrincipal User user){
         Map<Object, Object> model = new HashMap<>();
-        model.put("username", userDetails.getUsername());
-        model.put("roles", userDetails.getAuthorities()
+        model.put("username", user.getUsername());
+        model.put("roles", user.getAuthorities()
                 .stream()
                 .map(a -> ((GrantedAuthority) a).getAuthority())
                 .collect(toList())
         );
-        return ok(model);
+        return ResponseEntity.ok(model);
+    }
+
+    @GetMapping
+    public ModelAndView viewUser(Model model) {
+        return findPaginated(1, model);
+    }
+
+    @GetMapping("/page/{pageNo}")
+    public ModelAndView findPaginated(@PathVariable(value = "pageNo") int pageNo, Model model) {
+        int size = Constant.DEFAULT_PAGE_SIZE;
+
+        Page<User> page = userService.findPaginated(pageNo, size);
+        List<User> listUsers = page.getContent();
+
+        model.addAttribute("currentPage", pageNo);
+        model.addAttribute("totalPages", page.getTotalPages());
+        model.addAttribute("totalItems", page.getTotalElements());
+        model.addAttribute("listUsers", listUsers);
+
+        return new ModelAndView("/user-list");
     }
 
     @GetMapping("/{id}")
     @ResponseStatus(HttpStatus.OK)
-    public User findOneUser(@PathVariable("id") Long id) {
+    public ResponseEntity<?> findOneUser(@PathVariable("id") Long id) {
         log.info("User UserController {}", userService.findUserById(id));
-        return userService.findUserById(id);
-    }
-
-    @GetMapping
-    @ResponseStatus(HttpStatus.OK)
-    public @ResponseBody Page<User> getAllUsers(@RequestParam(value = "page", defaultValue = DEFAULT_PAGE_NUM) Integer page, @RequestParam(value = "size", defaultValue = DEFAULT_PAGE_SIZE) Integer size) {
-        return userService.getAllUsers(page, size);
+        Map<Object, Object> model = new HashMap<>();
+        model.put("user", userService.findUserById(id));
+        return ResponseEntity.ok(model);
     }
 
     @PutMapping("/{id}")
@@ -69,9 +84,18 @@ public class UserController {
         userService.updateUser(user);
     }
 
-    @DeleteMapping("/{id}")
+    @GetMapping("/delete/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void deleteUser(@PathVariable("id") Long id) {
+    public ModelAndView deleteUser(@PathVariable("id") Long id, Model model) {
         userService.deleteUser(id);
+        return viewUser(model);
+    }
+
+    @PostMapping("/reset-password")
+    public ResponseEntity<?> resetPassword( @PathVariable String password, @RequestBody User user) {
+        user.setPassword(encoder.encode(password));
+        userService.saveUser(user);
+
+        return ResponseEntity.ok("Reset password successfully!");
     }
 }

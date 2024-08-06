@@ -2,29 +2,33 @@ package com.example.spring.controller;
 
 import com.example.spring.entity.LoginRequest;
 import com.example.spring.entity.User;
-import com.example.spring.exception.ResourceNotFoundException;
-import com.example.spring.repository.UserRepository;
 import com.example.spring.security.JwtTokenProvider;
 
+import com.example.spring.service.UserService;
 import jakarta.validation.Valid;
+
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.ModelAndView;
 
 import java.util.*;
 
 @RestController
 @Slf4j
 @AllArgsConstructor
-@RequestMapping("/auth")
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class AuthenticationController {
     @Autowired
@@ -32,51 +36,75 @@ public class AuthenticationController {
     @Autowired
     JwtTokenProvider jwtTokenProvider;
     @Autowired
-    UserRepository userRepo;
+    UserService userService;
 
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@Valid @RequestBody LoginRequest loginRequest) {
-        Authentication authentication = authenticationManager.authenticate(
-                new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
-
-        SecurityContextHolder.getContext().setAuthentication(authentication);
-        String token = jwtTokenProvider.generateJwtToken(authentication);
-
-        User user = (User) authentication.getPrincipal();
-        List<String> roles = user.getAuthorities().stream()
-                .map(GrantedAuthority::getAuthority)
-                .toList();
-
-        Map<Object, Object> model = new HashMap<>();
-        model.put("username", user);
-        model.put("token", token);
-        return ResponseEntity.ok(model);
+    @GetMapping("/home")
+    public ModelAndView showHomePage() {
+        return new ModelAndView("/home-page");
     }
 
-    @PostMapping("/signup")
-    public ResponseEntity<?> registerUser(@Valid @RequestBody User user) {
-        if (userRepo.findByUsername(user.getUsername()).isPresent()) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(new ResourceNotFoundException("Error: Username is already taken!"));
+    @GetMapping("/login")
+    public ModelAndView showLogin(Model model) {
+        model.addAttribute("loginRequest", new LoginRequest());
+
+        return new ModelAndView("/login");
+    }
+
+    @GetMapping("/sign-up")
+    public ModelAndView showSignup(Model model) {
+        model.addAttribute("user", new User());
+
+        return new ModelAndView("sign-up");
+    }
+
+    @PostMapping("/home")
+    public ModelAndView login(@Valid LoginRequest loginRequest) {
+        try {
+            Authentication authentication = authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(loginRequest.getUsername(), loginRequest.getPassword()));
+
+            SecurityContextHolder.getContext().setAuthentication(authentication);
+            String token = jwtTokenProvider.generateJwtToken(authentication);
+
+            User user = (User) authentication.getPrincipal();
+            List<String> roles = user.getAuthorities().stream()
+                    .map(GrantedAuthority::getAuthority)
+                    .toList();
+
+            Map<Object, Object> model = new HashMap<>();
+            model.put("user", user);
+            model.put("token", token);
+            return showHomePage();
+        } catch (AuthenticationException e) {
+            SecurityContextHolder.getContext().setAuthentication(null);
+            log.error("Error: ", new BadCredentialsException("Invalid username/password supplied"));
+            return new ModelAndView("redirect:login?error");
         }
-        if (userRepo.findByEmail(user.getEmail()).isPresent()) {
-            return ResponseEntity
-                    .badRequest()
-                    .body(new ResourceNotFoundException("Error: Email is already in use!"));
+    }
+
+    @PostMapping("/process-register")
+    public ModelAndView registerUser(@Valid User signUpRequest, BindingResult bindingResult) {
+        if (userService.existsByUsername(signUpRequest.getUsername())) {
+            bindingResult.rejectValue("username", "error.username", "Username is already taken!");
+            log.error("Error: ", new BadRequestException("Username is already taken"));
+        }
+        if (userService.existsByEmail(signUpRequest.getEmail())) {
+            bindingResult.rejectValue("email", "error.email", "Email is already in use!");
+            log.error("Error: ", new BadRequestException("Email is already in use!"));
+        }
+        if (bindingResult.hasErrors()){
+            return new ModelAndView("sign-up");
         }
 
-        // Create new user's account
-        List<String> strRoles = user.getRoles();
+        userService.saveUser(signUpRequest);
 
-        if (strRoles == null || strRoles.isEmpty()) {
-            strRoles= List.of("ROLE_USER");
-        }
+        log.info("User registered successfully!");
+        return new ModelAndView("/register-success");
+    }
 
-        user.setRoles(strRoles);
-        userRepo.save(user);
-
-        return ResponseEntity.ok("User registered successfully!");
+    @PostMapping("/logout")
+    public ModelAndView logout() {
+        log.info("User logout!");
+        return new ModelAndView("redirect:login?logout");
     }
 }
-

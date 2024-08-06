@@ -2,7 +2,7 @@ package com.example.spring.configuration;
 
 import com.example.spring.security.JwtTokenFilter;
 import com.example.spring.security.JwtTokenProvider;
-import com.example.spring.security.AuthEntryPointJwt;
+import com.example.spring.security.JwtEntryPoint;
 
 import com.example.spring.service.CustomUserDetailsService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,13 +30,9 @@ import javax.sql.DataSource;
 @EnableMethodSecurity
 public class SecurityConfig {
     @Autowired
-    DataSource dataSource;
-    @Autowired
-    JwtTokenProvider jwtTokenProvider;
-    @Autowired
     CustomUserDetailsService userDetailsService;
     @Autowired
-    private AuthEntryPointJwt unauthorizedHandler;
+    private JwtEntryPoint unauthorizedHandler;
 
     @Bean
     public JwtTokenFilter authenticationJwtTokenFilter() {
@@ -77,6 +73,7 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.PUT, "/api/users/**").permitAll()//.hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/**").permitAll()//.hasRole("ADMIN")
                         .requestMatchers(HttpMethod.GET, "/api/users/**").permitAll()
+                        .requestMatchers("/api/test/**").permitAll()
                         .anyRequest().authenticated())
                 .formLogin(form -> form
                         .loginPage("/login")

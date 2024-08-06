@@ -1,10 +1,12 @@
 package com.example.spring.security;
 
 import com.example.spring.entity.User;
-import com.example.spring.exception.InvalidJwtAuthenticationException;
+
 import io.jsonwebtoken.*;
 import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
+
+import jakarta.transaction.Transactional;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,9 +18,9 @@ import java.security.Key;
 import java.util.Date;
 
 @Component
+@Transactional
 public class JwtTokenProvider {
     private static final Logger logger = LoggerFactory.getLogger(JwtTokenProvider.class);
-
     @Autowired
     JwtProperties jwtProperties;
 
@@ -29,7 +31,7 @@ public class JwtTokenProvider {
                 .setSubject((userPrincipal.getUsername()))
                 .setIssuedAt(new Date())
                 .setExpiration(new Date((new Date()).getTime() + jwtProperties.getValidityInMs()))
-                .signWith(SignatureAlgorithm.HS256, key())
+                .signWith(key())
                 .compact();
     }
 
@@ -38,13 +40,12 @@ public class JwtTokenProvider {
     }
 
     public String getUserNameFromJwtToken(String token) {
-        return Jwts.parser().setSigningKey(key())
-                .parseClaimsJws(token).getBody().getSubject();
+        return Jwts.parserBuilder().setSigningKey(key()).build().parseClaimsJws(token).getBody().getSubject();
     }
 
     public boolean validateJwtToken(String authToken) {
         try {
-            Jwts.parser().setSigningKey(key()).parse(authToken);
+            Jwts.parserBuilder().setSigningKey(key()).build().parse(authToken);
             return true;
         } catch (MalformedJwtException e) {
             logger.error("Invalid JWT token: {}", e.getMessage());

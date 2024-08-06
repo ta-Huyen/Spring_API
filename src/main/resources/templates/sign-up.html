@@ -51,6 +51,14 @@
         <label class="form-label" for="confirm">Confirm Password</label>
         <input type="password" id="confirm" class="form-control" required name="up2"/>
     </div>
+    <div class="mb-3">
+        <label class="form-label" for="roles">Role</label>
+        <select class="form-select" id="roles" th:field="*{roles}">
+            <option value="mod">Moderator</option>
+            <option value="admin">Admin</option>
+            <option value="user" selected>User</option>
+        </select>
+    </div>
 
     <!-- Submit button -->
     <button  type="submit" class="btn btn-primary btn-block mb-3">Sign up</button>

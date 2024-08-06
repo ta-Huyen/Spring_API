@@ -29,7 +29,6 @@ import java.util.stream.Collectors;
 @AllArgsConstructor
 @Table(name="user")
 public class User implements Serializable, UserDetails {
-
     @Serial
     private static final long serialVersionUID = -6178054163022548905L;
 
@@ -42,7 +41,7 @@ public class User implements Serializable, UserDetails {
     private String username;
     @Column(name = "email", nullable = false , unique = true)
     private String email;
-    @Column(name = "password",nullable = false)
+    @Column(name = "password", nullable = false)
     private String password;
     @Column(name = "created_at")
     @JsonDeserialize(using = LocalDateTimeDeserializer.class)

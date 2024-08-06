@@ -4,7 +4,7 @@
     <meta charset="ISO-8859-1">
     <title>Spring Assignment</title>
     <style>
-        form {
+        a, form {
             display: flex;
             justify-content: center;
         }
@@ -16,17 +16,21 @@
 <body>
 <h1 class="text-center">Welcome</h1>
 <p class="text-center mb-3">This is a Rest API built using Spring boot, Redis, MySQL, MongoDB and RabbitMQ</p>
-<form th:action="@{/home/course}" method="post" class="mx-auto">
+<form th:action="@{/api/user}" class="mx-auto">
+    <button  type="submit" class="btn btn-primary btn-block mb-3">Users list</button>
+</form>
+<form th:action="@{/api/course}" class="mx-auto">
     <button  type="submit" class="btn btn-primary btn-block mb-3">Courses list</button>
 </form>
-<form th:action="@{/edit-profile}" method="post" class="mx-auto">
+<form th:action="@{/edit-profile}" class="mx-auto">
     <button  type="submit" class="btn btn-primary btn-block mb-3">Edit your profile</button>
 </form>
-<form th:action="@{/detele-account}" method="post" class="mx-auto">
+<form th:action="@{/detele-me}" method="post" class="mx-auto">
     <button  type="submit" class="btn btn-primary btn-block mb-3">Delete your account</button>
 </form>
 <form th:action="@{/logout}" method="post" class="mx-auto">
-    <button type="submit" class="btn btn-primary btn-block mb-3">Log out</button>
+    <button type="submit" class="btn btn-primary btn-block mb-3"
+            onclick="return confirm('Are you sure you want to log out?');">Log out</button>
 </form>
 </div>
 </body>
