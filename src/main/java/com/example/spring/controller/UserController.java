@@ -7,23 +7,15 @@ import com.example.spring.service.UserService;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
+import org.apache.coyote.BadRequestException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.GrantedAuthority;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.ui.Model;
+import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.ModelAndView;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import static java.util.stream.Collectors.toList;
+import java.util.*;
 
 @Slf4j
 @AllArgsConstructor
@@ -31,27 +23,22 @@ import static java.util.stream.Collectors.toList;
 @RequestMapping("/api/user")
 public class UserController {
     @Autowired
-    AuthenticationManager authenticationManager;
-    @Autowired
-    private PasswordEncoder encoder;
-    @Autowired
     private UserService userService;
 
-    @GetMapping("/me")
-    public ResponseEntity<?> currentUser(@AuthenticationPrincipal User user){
-        Map<Object, Object> model = new HashMap<>();
-        model.put("username", user.getUsername());
-        model.put("roles", user.getAuthorities()
-                .stream()
-                .map(a -> ((GrantedAuthority) a).getAuthority())
-                .collect(toList())
-        );
-        return ResponseEntity.ok(model);
+    @GetMapping
+    public ModelAndView showUsers(Model model) {
+        return findPaginated(1, model);
     }
 
-    @GetMapping
-    public ModelAndView viewUser(Model model) {
-        return findPaginated(1, model);
+    @GetMapping("/edit-profile")
+    public ModelAndView showEditProfile(Model model) {
+        User user = AuthenticationController.getLoggedUser();
+        if (user == null) {
+            model.addAttribute("idNotFound", -1);
+        }
+        model.addAttribute("editInfo", Objects.requireNonNullElseGet(user, User::new));
+
+        return new ModelAndView("edit-profile");
     }
 
     @GetMapping("/page/{pageNo}")
@@ -66,36 +53,59 @@ public class UserController {
         model.addAttribute("totalItems", page.getTotalElements());
         model.addAttribute("listUsers", listUsers);
 
-        return new ModelAndView("/user-list");
+        return new ModelAndView("user-list");
     }
 
-    @GetMapping("/{id}")
-    @ResponseStatus(HttpStatus.OK)
-    public ResponseEntity<?> findOneUser(@PathVariable("id") Long id) {
-        log.info("User UserController {}", userService.findUserById(id));
-        Map<Object, Object> model = new HashMap<>();
-        model.put("user", userService.findUserById(id));
-        return ResponseEntity.ok(model);
+    @GetMapping("/find")
+    public ModelAndView findUser(@RequestParam("byId") String id, @RequestParam("byName") String name,
+                                 @RequestParam("byUsername") String username,
+                                 @RequestParam("byEmail") String email, @RequestParam("byRole") List<String> roles,
+                                 Model model) {
+        if (!id.isBlank() && !Constant.isNumeric(id)) {
+                model.addAttribute("idError", true);
+        }
+
+        List<User> listUsers = userService.findUser(id, name, username, email, roles);
+
+        model.addAttribute("byId", id);
+        model.addAttribute("byName", name);
+        model.addAttribute("byUsername", username);
+        model.addAttribute("byEmail", email);
+        model.addAttribute("byRole", roles.toString());
+        model.addAttribute("byName", name);
+        model.addAttribute("currentPage", 1);
+        model.addAttribute("totalPages", 0);
+        model.addAttribute("totalItems", listUsers.size());
+        model.addAttribute("listUsers", listUsers);
+
+        return new ModelAndView("user-list");
     }
 
-    @PutMapping("/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
-    public void modifyUser(@PathVariable("id") Long id, @RequestBody User user) {
-        userService.updateUser(user);
+    @PostMapping("/edit/{id}")
+    public ModelAndView editUser(@PathVariable("id") Long id, @ModelAttribute("editInfo") User request, Model model,
+                      BindingResult bindingResult) {
+        User userByUsername = userService.findByUsername(request.getUsername());
+        User userByEmail = userService.findUserByEmail(request.getEmail());
+        if ((userByUsername != null) && (!Objects.equals(userByUsername.getId(), id))) {
+            bindingResult.rejectValue("username", "error.username", "Username is already taken!");
+            log.error("Error: ", new BadRequestException("Username is already taken!"));
+        }
+        if ((userByEmail != null) && (!Objects.equals(userByEmail.getId(), id))) {
+            bindingResult.rejectValue("email", "error.email", "Email is already in use!");
+            log.error("Error: ", new BadRequestException("Email is already in use!"));
+        }
+        if (bindingResult.hasErrors()){
+            return new ModelAndView("edit-profile");
+        }
+
+        userService.editUser(id, request);
+        model.addAttribute("isSaved", true);
+        return showEditProfile(model);
     }
 
     @GetMapping("/delete/{id}")
-    @ResponseStatus(HttpStatus.NO_CONTENT)
     public ModelAndView deleteUser(@PathVariable("id") Long id, Model model) {
         userService.deleteUser(id);
-        return viewUser(model);
-    }
-
-    @PostMapping("/reset-password")
-    public ResponseEntity<?> resetPassword( @PathVariable String password, @RequestBody User user) {
-        user.setPassword(encoder.encode(password));
-        userService.saveUser(user);
-
-        return ResponseEntity.ok("Reset password successfully!");
+        return showUsers(model);
     }
 }

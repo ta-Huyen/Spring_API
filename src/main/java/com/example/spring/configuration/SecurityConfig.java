@@ -1,7 +1,6 @@
 package com.example.spring.configuration;
 
 import com.example.spring.security.JwtTokenFilter;
-import com.example.spring.security.JwtTokenProvider;
 import com.example.spring.security.JwtEntryPoint;
 
 import com.example.spring.service.CustomUserDetailsService;
@@ -68,7 +67,6 @@ public class SecurityConfig {
                 .sessionManagement(sess -> sess.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeRequests(auth -> auth
                         .requestMatchers("/auth/**").permitAll()
-                        .requestMatchers("/home-page").authenticated()
                         .requestMatchers(HttpMethod.POST, "/api/users/**").permitAll()//.hasRole("ADMIN")
                         .requestMatchers(HttpMethod.PUT, "/api/users/**").permitAll()//.hasRole("ADMIN")
                         .requestMatchers(HttpMethod.DELETE, "/api/users/**").permitAll()//.hasRole("ADMIN")

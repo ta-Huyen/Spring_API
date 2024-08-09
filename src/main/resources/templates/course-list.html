@@ -11,8 +11,11 @@
         .page-container, .page-container .row {
             justify-content: center;
         }
-        table {
+        table, .alertContainer {
             max-width: 80%;
+        }
+        input {
+            width: 80%;
         }
     </style>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" />
@@ -28,24 +31,52 @@
 <form th:action="@{/home}" class="mx-auto">
     <button  type="submit" class="btn btn-primary btn-block mb-3">Courses list</button>
 </form>
+<div class="alertContainer mx-auto alert alert-danger alert-dismissible" th:if="${idNotFound != null}">
+    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    <strong>Cannot update course!</strong> Course with ID [[${idNotFound}]] not found.
+</div>
 <div class="mx-auto mb-3 text-center">
     <div class="table-container">
         <table class="table table-striped table-bordered mx-5">
+            <tr>
+                <form th:action="@{/api/course/find}" method="get">
+                    <th>
+                        <input type="text" id="byId" name="byId" class="m-0 p-1 text-center border-0"
+                               th:placeholder="${byId}"/>
+                        <p class="m-0 text-danger fw-normal" th:if="${idError}">Course ID has to be a number!</p>
+                    </th>
+                    <th><input type="text" id="byName" name="byName" class="m-0 p-1 text-center border-0"
+                               th:placeholder="${byName}"/></th>
+                    <th></th>
+                    <th>
+                        <button type="submit" class="btn btn-primary btn-block">Filter</button>
+                    </th>
+                </form>
+            </tr>
             <thead class="thead-dark">
             <tr>
                 <th>Course ID</th>
                 <th>Course Name</th>
                 <th>Description</th>
-                <th><a th:href="@{/api/course/add-course}" class="btn btn-primary btn-block">Add Course</a></th>
+                <th>
+                    <a class="btn btn-primary btn-block" data-bs-toggle="modal" data-bs-target="#addCourse">Add Course</a>
+                </th>
             </tr>
             </thead>
             <tbody>
-            <tr th:each="course: ${listCourses}">
-                <td th:text="${course.id}">Course ID</td>
-                <td th:text="${course.name}">Course Name</td>
-                <td th:text="${course.description}">Description</td>
-                <td><a th:href="@{/api/course/edit/{id}(id=${course.id})}" class="btn btn-primary">Update</a>
-                    <a th:href="@{/api/course/delete/{id}(id=${course.id})}" class="btn btn-danger">Delete</a></td>
+            <tr class="text-center" th:if="${totalItems == 0}">
+                <td colspan="4">
+                    <p>Course not found</p>
+                </td>
+            </tr>
+            <tr th:each="c: ${listCourses}">
+                <td th:text="${c.id}">Course ID</td>
+                <td th:text="${c.name}">Course Name</td>
+                <td th:text="${c.description}">Description</td>
+                <td><a th:href="@{/api/course/update/{id}(id=${c.id})}" class="btn btn-primary">Update</a>
+                    <a th:href="@{/api/course/delete/{id}(id=${c.id})}" class="btn btn-danger"
+                       th:onclick="return confirm('Delete this course?');">Delete</a>
+                </td>
             </tr>
             </tbody>
         </table>
@@ -74,15 +105,54 @@
         </div>
     </div>
 </div>
-<form th:action="@{/edit-me}" class="mx-auto">
-    <button  type="submit" class="btn btn-primary btn-block mb-3">Edit your profile</button>
+
+<!--Add course modal-->
+<div class="modal fade" id="addCourse" tabindex="-1" aria-labelledby="addCourseLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header text-center">
+                <h1>Create new course</h1>
+            </div>
+            <form th:action="@{/api/course/add}" th:object="${course}" method="post" class="modal-body mx-auto w-100 card border-0" autocomplete="off">
+                <!-- Course name input -->
+                <div class="mb-3">
+                    <label class="form-label" for="name">Course name</label>
+                    <input type="text" th:field="*{name}" id="name" class="form-control" required />
+                    <p class="text-danger" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+                </div>
+                <!-- Description input -->
+                <div class="mb-3">
+                    <label class="label" for="description">Description</label>
+                    <textarea type="text" th:field="*{description}" id="description" class="form-control" rows="5"></textarea>
+                </div>
+                <!-- Submit button -->
+                <button  type="submit" class="btn btn-primary btn-block mb-3">Submit</button>
+            </form>
+            <div class="modal-footer">
+                <p>Back to <a th:href="@{/api/course}">Courses list</a></p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form th:action="@{/api/user/edit-profile}" class="mx-auto">
+    <button type="submit" class="btn btn-primary btn-block mb-3">Edit your profile</button>
 </form>
-<form th:action="@{/detele-me}" method="post" class="mx-auto">
-    <button  type="submit" class="btn btn-primary btn-block mb-3">Delete your account</button>
+<form th:action="@{/delete}" method="post" class="mx-auto">
+    <button type="submit" class="btn btn-primary btn-block mb-3"
+            th:onclick="return confirm('Are you sure you want to delete account?');">Delete your account</button>
 </form>
 <form th:action="@{/logout}" method="post" class="mx-auto">
     <button type="submit" class="btn btn-primary btn-block mb-3"
-            onclick="return confirm('Are you sure you want to log out?');">Log out</button>
+            th:onclick="return confirm('Are you sure you want to log out?');">Log out</button>
 </form>
+
+<script th:inline="javascript" th:if="${isAdd}">
+    var addModal = new bootstrap.Modal(document.getElementById("addCourse"), {});
+    document.onreadystatechange = function ()  {
+        addModal.show();
+    };
+</script>
+
 </body>
 </html>

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="ISO-8859-1">
+    <title>Spring Assignment</title>
+    <style>
+        .form-label:after {
+            content:" *";
+            color: red;
+        }
+        form {
+          max-width: 600px;
+        }
+    </style>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5/dist/css/bootstrap.min.css" />
+    <script src="https://cdn.jsdelivr.net/webjars/org.webjars/jquery/2.1.0/jquery.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</head>
+<body>
+<form th:action="@{/api/course/update/{id} (id=${updateCourse.id})}" th:object="${updateCourse}" method="post"
+      id="course-form" class="mx-auto mt-5 card p-3 w-100 p-2 shadow-sm" autocomplete="off">
+    <div class="mb-3 text-center">
+        <h1>Update course</h1>
+    </div>
+    <!-- Course name input -->
+    <div class="mb-3">
+        <label class="form-label" for="name">Course name</label>
+        <input type="text" th:field="*{name}" id="name" class="form-control" th:placeholder="${updateCourse.name}"
+               required/>
+        <p class="text-danger" th:if="${#fields.hasErrors('name')}" th:errors="*{name}"></p>
+    </div>
+    <!-- Description input -->
+    <div class="mb-3">
+        <label class="label" for="description">Description</label>
+        <textarea th:field="*{description}" id="description" class="form-control" rows="5"
+                  th:placeholder="${updateCourse.description}"></textarea>
+    </div>
+    <!-- Submit button -->
+    <button type="submit" class="btn btn-primary btn-block mb-3" th:onclick="return confirm('Do you want to update
+             course?');">Submit</button>
+</form>
+
+<div class="text-center m-3">
+    <p>Back to <a th:href="@{/api/course}">Courses list</a></p>
+</div>
+</body>
+</html>

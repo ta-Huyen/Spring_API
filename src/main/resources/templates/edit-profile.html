@@ -19,44 +19,52 @@
 <body>
 <h1 class="text-center">Welcome</h1>
 <p class="text-center mb-3">This is a Rest API built using Spring boot, Redis, MySQL, MongoDB and RabbitMQ</p>
-<form th:action=="@{/api/user}" class="mx-auto">
+<form th:action="@{/api/user}" class="mx-auto">
     <button  type="submit" class="btn btn-primary btn-block mb-3">Users list</button>
 </form>
-<form th:action="@{/api/course/all}" class="mx-auto">
+<form th:action="@{/api/course}" class="mx-auto">
     <button  type="submit" class="btn btn-primary btn-block mb-3">Courses list</button>
 </form>
 <form th:action="@{/home}" class="mx-auto">
     <button  type="submit" class="btn btn-primary btn-block mb-3">Edit your profile</button>
 </form>
 <div class="mx-auto mb-3 card p-3 w-100 p-2 shadow-sm">
-    <form th:action="@{/edit}" th:object="${user}" method="post"
+    <form th:action="@{/api/user/edit/{id} (id=${editInfo.id})}" th:object="${editInfo}" method="post"
           class="card border-0"
           autocomplete="off">
         <div class="mb-3 text-center">
             <h1>Profile</h1>
         </div>
+        <div class="alertContainer mx-auto alert alert-danger alert-dismissible" th:if="${idNotFound != null}">
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <strong>Cannot load profile!</strong> User not found.
+        </div>
+        <div class="alertContainer mx-auto alert alert-info alert-dismissible" th:if="${isSaved}">
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            <p>User profile updated!</p>
+        </div>
         <!-- Full name input -->
         <div class="mb-3">
             <label class="label" for="name">Full name</label>
-            <input type="text" th:field="*{name}" id="name" class="form-control" />
+            <input type="text" th:field="*{name}" id="name" class="form-control" th:placeholder="#{editInfo.name}"/>
         </div>
         <!-- Username input -->
         <div class="mb-3">
             <label class="form-label" for="username">Username</label>
-            <input type="text" th:field="*{username}" id="username" class="form-control" th:placeholder="#{user.username}"
+            <input type="text" th:field="*{username}" id="username" class="form-control" th:placeholder="#{editInfo.username}"
                    required />
             <p class="text-danger" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"/></p>
         </div>
         <!-- Email input -->
         <div class="mb-3">
             <label class="form-label" for="email">Email</label>
-            <input type="email" th:field="*{email}" id="email" class="form-control" th:placeholder="#{user.email}"
+            <input type="email" th:field="*{email}" id="email" class="form-control" th:placeholder="#{editInfo.email}"
                    required />
             <p class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"/></p>
         </div>
         <div class="mb-3">
             <label class="form-label" for="roles">Role</label>
-            <select class="form-select" th:field="*{roles}" id="roles" th:placeholder="#{user.roles}">
+            <select class="form-select" th:field="*{roles}" id="roles" th:placeholder="#{editInfo.roles}">
                 <option value="mod">Moderator</option>
                 <option value="admin">Admin</option>
                 <option value="user">User</option>
@@ -66,16 +74,18 @@
         <!-- Submit button -->
         <button  type="submit" class="btn btn-primary btn-block mb-3">Save</button>
     </form>
-    <form th:action="@{/api/users/reset-password}" method="post" class="card border-0">
+    <form th:action="@{/reset/{id} (id=${editInfo.id})}" class="card border-0">
         <button  type="submit" class="btn btn-primary btn-block mb-3">Change Password</button>
     </form>
 </div>
-<form th:action="@{/detele-me}" method="post" class="mx-auto">
-    <button  type="submit" class="btn btn-primary btn-block mb-3">Delete your account</button>
+
+<form th:action="@{/delete}" method="post" class="mx-auto">
+    <button type="submit" class="btn btn-primary btn-block mb-3"
+            th:onclick="return confirm('Are you sure you want to delete account?');">Delete your account</button>
 </form>
 <form th:action="@{/logout}" method="post" class="mx-auto">
     <button type="submit" class="btn btn-primary btn-block mb-3"
-            onclick="return confirm('Are you sure you want to log out?');">Log out</button>
+            th:onclick="return confirm('Are you sure you want to log out?');">Log out</button>
 </form>
 </div>
 </body>

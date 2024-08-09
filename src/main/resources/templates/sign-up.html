@@ -18,9 +18,7 @@
 </head>
 <body>
 <form th:action="@{/process-register}" th:object="${user}" method="post"
-      class="mx-auto mt-3 card p-3 w-100 p-2 shadow-sm"
-      autocomplete="off"
-      oninput='up2.setCustomValidity(up2.value != up.value ? "Passwords do not match." : "")'>
+      class="mx-auto mt-3 card p-3 w-100 p-2 shadow-sm" autocomplete="off">
     <div class="mb-3 text-center">
         <h1>Sign up</h1>
     </div>
@@ -33,23 +31,23 @@
     <div class="mb-3">
         <label class="form-label" for="username">Username</label>
         <input type="text" th:field="*{username}" id="username" class="form-control" required />
-        <p class="text-danger" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"/></p>
+        <p class="text-danger" th:if="${#fields.hasErrors('username')}" th:errors="*{username}"></p>
     </div>
     <!-- Email input -->
     <div class="mb-3">
         <label class="form-label" for="email">Email</label>
         <input type="email" th:field="*{email}" id="email" class="form-control" required />
-        <p class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"/></p>
+        <p class="text-danger" th:if="${#fields.hasErrors('email')}" th:errors="*{email}"></p>
     </div>
     <!-- Password input -->
     <div class="mb-3">
         <label class="form-label" for="password">Password</label>
-        <input type="password" th:field="*{password}" id="password" class="form-control" required name='up'/>
+        <input type="password" th:field="*{password}" id="password" class="form-control" required/>
     </div>
     <!-- Password confirm input -->
     <div class="mb-3">
         <label class="form-label" for="confirm">Confirm Password</label>
-        <input type="password" id="confirm" class="form-control" required name="up2"/>
+        <input type="password" id="confirm" class="form-control" required oninput="checkPasswordMatch(this);"/>
     </div>
     <div class="mb-3">
         <label class="form-label" for="roles">Role</label>
@@ -66,5 +64,15 @@
 <div class="text-center m-3">
     <p>Already have an account? <a th:href="@{/login}">Login here</a></p>
 </div>
+
+<script>
+    function checkPasswordMatch(fieldConfirmPassword) {
+        if (fieldConfirmPassword.value != $("#password").val()) {
+            fieldConfirmPassword.setCustomValidity("Passwords do not match!");
+        } else {
+            fieldConfirmPassword.setCustomValidity("");
+        }
+    }
+</script>
 </body>
 </html>

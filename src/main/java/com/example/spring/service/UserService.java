@@ -4,24 +4,19 @@ import com.example.spring.entity.User;
 import com.example.spring.exception.ResourceNotFoundException;
 import com.example.spring.repository.UserRepository;
 
-import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
-import jakarta.transaction.Transactional;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.redis.core.RedisTemplate;
-import org.springframework.data.redis.core.ValueOperations;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
-import java.util.concurrent.TimeUnit;
 
 @Slf4j
 @AllArgsConstructor
@@ -31,40 +26,58 @@ public class UserService {
     private UserRepository userRepo;
     @Autowired
     PasswordEncoder encoder;
-//    private final RedisTemplate<String, User> redisTemplate;
 
-    public Boolean existsByUsername(String username) {
-        return userRepo.findByUsername(username).isPresent();
+    public User findByUsername(String username) {
+        return userRepo.findByUsername(username).orElse(null);
     }
 
-    public Boolean existsByEmail(String email) {
-        return userRepo.findByEmail(email).isPresent();
+    public User findUserByEmail(String email) {
+        return userRepo.findByEmail(email).orElse(null);
     }
 
     public User findUserById(Long id) {
-//        String key = "user_" + id;
-//        ValueOperations<String, User> operations = redisTemplate.opsForValue();
-//        boolean hasKey = Boolean.TRUE.equals(redisTemplate.hasKey(key));
-//        if (hasKey) {
-//            User user = operations.get(key);
-//            log.info("UserServiceImpl.findUserById() : cache user >> {}", user.toString());
-//            return user;
-//        }
-        Optional<User> user = userRepo.findById(id);
-        if (user.isPresent()) {
-//            operations.set(key, user.get(), 10, TimeUnit.SECONDS);
-//            log.info("UserServiceImpl.findUserById() : cache insert >> {}", user.get());
-            return user.get();
-        } else {
-            throw new ResourceNotFoundException();
+        return userRepo.findById(id).orElse(null);
+    }
+
+    private String reassignValue(String str) {
+        return str.isBlank() ? null : str;
+    }
+
+    public List<User> findUser(String id, String name, String username, String email, List<String> roles) {
+        List<User> userByCriteria = userRepo.findByCriteria(reassignValue(id), reassignValue(name),
+                reassignValue(username), reassignValue(email));
+
+        List<String> arrRoles = new ArrayList<>();
+        roles.forEach(r -> {
+            switch (r) {
+                case "admin":
+                    arrRoles.add("ROLE_ADMIN");
+                    break;
+                case "mod":
+                    arrRoles.add("ROLE_MODERATOR");
+                    break;
+                case "user":
+                    arrRoles.add("ROLE_USER");
+                    break;
+            }
+        });
+        int i=0;
+        while (i < userByCriteria.size()) {
+            if (!new HashSet<>(userByCriteria.get(i).getRoles()).containsAll(arrRoles)) {
+                userByCriteria.remove(i);
+            } else {
+                i += 1;
+            }
         }
+
+        return userByCriteria;
     }
 
     public Page<User> findPaginated(int pageNo, int size) {
         return userRepo.findAll(PageRequest.of(pageNo-1, size));
     }
 
-    public User saveUser(User requestSave) {
+    public void addUser(User requestSave) {
         List<String> requestRoles = requestSave.getRoles();
         List<String> roles;
 
@@ -93,31 +106,35 @@ public class UserService {
         user.setPassword(encoder.encode(requestSave.getPassword()));
         user.setRoles(roles);
 
-        return userRepo.save(user);
+        userRepo.save(user);
     }
 
-    public User updateUser(User user) {
-//        final String key = "user_" + user.getId();
-//        final boolean hasKey = Boolean.TRUE.equals(redisTemplate.hasKey(key));
-//        if (hasKey) {
-//            redisTemplate.delete(key);
-//            log.info("UserServiceImpl.updateUser() : cache update >> {}", user);
-//        }
-        return userRepo.save(user);
+    public void editUser(long id, User request) {
+        User userById = findUserById(id);
+        if (userById != null) {
+            userById.setName(request.getName());
+            userById.setUsername(request.getUsername());
+            userById.setEmail(request.getEmail());
+            userById.setRoles(request.getRoles());
+
+            userRepo.save(userById);
+        } else {
+            log.error("Error: ", new ResourceNotFoundException("User with id " + id + " not found"));
+        }
+    }
+
+    public void resetPassword(User user, String password) {
+        user.setPassword(encoder.encode(password));
+        userRepo.save(user);
     }
 
     public void deleteUser(Long id) {
-//        final String key = "user_" + id;
-//        final boolean hasKey = Boolean.TRUE.equals(redisTemplate.hasKey(key));
-//        if (hasKey) {
-//            redisTemplate.delete(key);
-//            log.info("UserServiceImpl.deleteUser() : cache delete ID >> {}", id);
-//        }
         Optional<User> user = userRepo.findById(id);
         if (user.isPresent()) {
             userRepo.deleteById(id);
+            log.info("Delete user with id " + id);
         } else {
-            throw new ResourceNotFoundException();
+            log.error("Error: ", new ResourceNotFoundException("User with id " + id + "not found"));
         }
     }
 }
